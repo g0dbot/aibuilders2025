@@ -1,8 +1,9 @@
 import { Entity } from './Entity.js';
 
 export class Platform extends Entity {
-  constructor(x, y, width, height) {
+  constructor(x, y, width, height, type = 'regular') {
     super(x, y, width, height);
+    this.type = type; // 'base' or 'floating'
   }
 
   render(ctx) {

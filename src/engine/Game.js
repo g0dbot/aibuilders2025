@@ -23,7 +23,7 @@ export class Game {
     // Initial platforms
     this.entities.push(new Platform(50, 400, 300, 20));
     this.entities.push(new Platform(400, 350, 150, 20));
-    this.entities.push(new Platform(0, this.levelManager.basePlatformY, this.canvasWidth, 40));
+    //this.entities.push(new Platform(0, this.levelManager.basePlatformY, this.canvasWidth, 40));
   }
 
   start() {
@@ -52,13 +52,10 @@ export class Game {
     }
 
     this.levelManager.update(this.scrollSpeed);
-
     this.checkPlayerPlatformCollision();
 
-    // Add this block to move the player with the scroll when grounded
-    if (this.player.grounded) {
-      this.player.pos.x -= this.scrollSpeed;
-    }
+    // Always apply scroll to player (remove grounded check)
+    this.player.pos.x -= this.scrollSpeed;
   }
 
 

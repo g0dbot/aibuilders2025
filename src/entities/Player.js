@@ -5,7 +5,7 @@ export class Player extends Entity {
   constructor(x, y) {
     super(x, y, 40, 40);
 
-    this.speed = 3;
+    this.speed = 5;
     this.direction = 'right'; // for attack direction
     this.velocityY = 0;
     this.gravity = 0.6;
