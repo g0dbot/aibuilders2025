@@ -1,4 +1,4 @@
-import { Entity } from './Entity.js';
+import { Entity } from '../Entity.js';
 
 export class Platform extends Entity {
   constructor(x, y, width, height, type = 'regular') {

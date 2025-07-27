@@ -1,4 +1,6 @@
-import { Platform } from '../entities/Platform.js';
+import { BasePlatform } from '../entities/platforms/BasePlatform.js';
+import { BouncyPlatform } from '../entities/platforms/BouncyPlatform.js';
+import { FloatingPlatform } from '../entities/platforms/FloatingPlatform.js';
 
 export class LevelManager {
   constructor(entities, canvasWidth, canvasHeight) {
@@ -10,16 +12,19 @@ export class LevelManager {
     this.lastPlatformX = canvasWidth;
 
     // Base platform configuration
-    this.basePlatformY = this.canvasHeight * 0.75; // 25% from bottom
-    this.segmentWidth = 200; // Added segment width
-    this.gapWidth = 100; // Added gap width
+    this.basePlatformY = this.canvasHeight * 0.75;
+    this.segmentWidth = 200;
+    this.gapWidth = 100;
 
     // Floating platform configuration
-    this.platformMinY = this.basePlatformY - 250; // Highest point
-    this.platformMaxY = this.basePlatformY - 50; 
+    this.platformMinY = this.basePlatformY - 250;
+    this.platformMaxY = this.basePlatformY - 50;
     this.platformWidthRange = [100, 250];
 
-    // Initial platform setup
+    // Platform type definitions
+    this.platformTypes = [BasePlatform, BouncyPlatform];
+    this.floatingTypes = [FloatingPlatform];
+
     this.spawnBaseSegments();
   }
 
@@ -27,21 +32,16 @@ export class LevelManager {
     this.generateBaseSegments(scrollSpeed);
     this.generateFloatingPlatforms();
     this.cleanPlatforms();
-  } 
+  }
 
-   spawnBaseSegments() {
+  spawnBaseSegments() {
     let x = 0;
     while (x < this.canvasWidth * 2) {
       const width = this.random(this.platformWidthRange[0], this.platformWidthRange[1]);
-      const gap = this.random(60, 140); // minGap = 60, maxGap = 140
+      const gap = this.random(60, 140);
 
-      this.entities.push(new Platform(
-        x,
-        this.basePlatformY,
-        width,
-        this.canvasHeight - this.basePlatformY, // height from base up to bottom
-        'base'
-      ));
+      const platform = this.spawnPlatformFromTypes(this.platformTypes, x, this.basePlatformY, width, this.canvasHeight - this.basePlatformY);
+      if (platform) this.entities.push(platform);
 
       x += width + gap;
     }
@@ -61,55 +61,46 @@ export class LevelManager {
       const width = this.random(this.platformWidthRange[0], this.platformWidthRange[1]);
       const gap = this.random(60, 140);
 
-      this.entities.push(new Platform(
+      const platform = this.spawnPlatformFromTypes(
+        this.platformTypes,
         rightEdge + gap,
         this.basePlatformY,
         width,
-        this.canvasHeight - this.basePlatformY,
-        'base'
-      ));
+        this.canvasHeight - this.basePlatformY
+      );
+      if (platform) this.entities.push(platform);
     }
   }
-
 
   generateFloatingPlatforms() {
-  const rightEdge = this.getFarthestPlatformX();
+    const rightEdge = this.getFarthestPlatformX();
 
-  while (this.lastPlatformX < rightEdge + 400) {
-    const width = this.random(
-      this.platformWidthRange[0],
-      this.platformWidthRange[1]
-    );
+    while (this.lastPlatformX < rightEdge + 400) {
+      const width = this.random(this.platformWidthRange[0], this.platformWidthRange[1]);
+      const y = this.random(this.platformMinY, this.platformMaxY);
 
-    const safeMaxY = Math.min(
-      this.platformMaxY,
-      this.basePlatformY - 30 // ensures no overlap with base
-    );
+      const platform = this.spawnPlatformFromTypes(this.floatingTypes, this.lastPlatformX, y, width, 20);
+      if (platform && platform.pos.y + platform.size.height <= this.basePlatformY - 10) {
+        this.entities.push(platform);
+      }
 
-    const y = this.random(this.platformMinY, safeMaxY);
-
-    const newPlatform = new Platform(
-      this.lastPlatformX,
-      y,
-      width,
-      20,
-      'floating'
-    );
-
-    if (newPlatform.pos.y + newPlatform.size.height <= this.basePlatformY - 10) {
-      this.entities.push(newPlatform);
+      this.lastPlatformX += width + this.platformSpacing;
     }
-
-    this.lastPlatformX += width + this.platformSpacing;
   }
-}
 
+  spawnPlatformFromTypes(types, x, y, width, height) {
+    for (let Type of types) {
+      if (Type.canSpawnAt?.(x, y)) {
+        return Type.generate(x, y, width, height);
+      }
+    }
+    return null;
+  }
 
   cleanPlatforms() {
     for (let i = this.entities.length - 1; i >= 0; i--) {
       const e = this.entities[i];
-      if (e instanceof Platform && e.pos.x + e.size.width < -100) {
-        //console.log(`[LevelManager] Removing platform at x=${e.pos.x}`);
+      if (e.pos.x + e.size.width < -100) {
         this.entities.splice(i, 1);
       }
     }
@@ -118,7 +109,7 @@ export class LevelManager {
   getFarthestPlatformX() {
     let farthest = 0;
     for (let e of this.entities) {
-      if (e instanceof Platform) {
+      if (e.pos && e.size) {
         const right = e.pos.x + e.size.width;
         if (right > farthest) {
           farthest = right;

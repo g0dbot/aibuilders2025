@@ -1,6 +1,6 @@
 import { Renderer } from './Renderer.js';
 import { Player } from '../entities/Player.js';
-import { Platform } from '../entities/Platform.js';
+import { Platform } from '../entities/platforms/Platform.js';
 import { LevelManager } from './LevelManager.js';
 
 export class Game {
@@ -81,12 +81,12 @@ export class Game {
 
       const platformTop = entity.pos.y;
 
-      // Check if player is overlapping the platform from above
       if (playerBottom >= platformTop && player.pos.y <= platformTop) {
+        // Position player correctly on top
         player.pos.y = platformTop - player.size.height;
-        player.velocityY = 0;
-        player.grounded = true;
-        player.jumpCount = 0;
+
+        // Delegate behavior to platform
+        entity.onPlayerCollide?.(player);
 
         if (player.state.current !== 'attacking' && (player.keys['ArrowLeft'] || player.keys['ArrowRight'])) {
           player.state.setState('running');
@@ -96,6 +96,4 @@ export class Game {
       }
     }
   }
-
-
 }
