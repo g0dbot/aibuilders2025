@@ -6,10 +6,10 @@ export class Player extends Entity {
     super(x, y, 40, 40);
 
     this.speed = 5;
-    this.direction = 'right'; // for attack direction
+    this.direction = 'right';
     this.velocityY = 0;
     this.gravity = 0.6;
-    this.jumpForce = -13 ;
+    this.jumpForce = -13;
     this.jumpCount = 0;
     this.maxJumps = 2;
     this.grounded = false;
@@ -51,39 +51,34 @@ export class Player extends Entity {
       } else {
         this.state.setState('jumping');
       }
-    }, 200); // short attack animation
+    }, 200);
   }
 
   update(delta) {
-  // Apply gravity only when not grounded
-  if (!this.grounded) {
-    this.velocityY += this.gravity;
-  } else {
-    this.velocityY = 0;
+    if (!this.grounded) {
+      this.velocityY += this.gravity;
+    } else {
+      this.velocityY = 0;
+    }
+
+    this.pos.y += this.velocityY;
+
+    if (this.keys['ArrowLeft']) {
+      this.pos.x -= this.speed;
+      this.direction = 'left';
+    } else if (this.keys['ArrowRight']) {
+      this.pos.x += this.speed;
+      this.direction = 'right';
+    }
+
+    if (this.pos.x < 0) this.pos.x = 0;
+    if (this.pos.x + this.size.width > 800) this.pos.x = 800 - this.size.width;
   }
-
-  this.pos.y += this.velocityY;
-
-  // Movement
-  if (this.keys['ArrowLeft']) {
-    this.pos.x -= this.speed;
-    this.direction = 'left';
-  } else if (this.keys['ArrowRight']) {
-    this.pos.x += this.speed;
-    this.direction = 'right';
-  }
-
-  // Boundary constraints
-  if (this.pos.x < 0) this.pos.x = 0;
-  if (this.pos.x + this.size.width > 800) this.pos.x = 800 - this.size.width;
-}
-
 
   render(ctx) {
     ctx.fillStyle = this.state.getColor();
     ctx.fillRect(this.pos.x, this.pos.y, this.size.width, this.size.height);
 
-    // Render direction indicator (attack direction)
     ctx.fillStyle = this.direction === 'right' ? 'white' : 'black';
     ctx.fillRect(
       this.direction === 'right' ? this.pos.x + this.size.width : this.pos.x - 5,

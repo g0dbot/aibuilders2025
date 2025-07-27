@@ -67,6 +67,8 @@ export class Game {
   checkPlayerPlatformCollision() {
     const player = this.player;
     const playerBottom = player.pos.y + player.size.height;
+    const playerTop = player.pos.y;
+    const playerPrevBottom = player.pos.y + player.size.height - player.velocityY;
 
     player.grounded = false;
 
@@ -81,12 +83,16 @@ export class Game {
 
       const platformTop = entity.pos.y;
 
-      if (playerBottom >= platformTop && player.pos.y <= platformTop) {
-        // Position player correctly on top
-        player.pos.y = platformTop - player.size.height;
+      // ✅ Only trigger collision if the player is falling and was above the platform in previous frame
+      const isFalling = player.velocityY >= 0;
+      const wasAbove = playerPrevBottom <= platformTop;
 
-        // Delegate behavior to platform
-        entity.onPlayerCollide?.(player);
+      if (isFalling && wasAbove && playerBottom >= platformTop) {
+        // Snap player to top
+        player.pos.y = platformTop - player.size.height;
+        player.velocityY = 0;
+        player.grounded = true;
+        player.jumpCount = 0;
 
         if (player.state.current !== 'attacking' && (player.keys['ArrowLeft'] || player.keys['ArrowRight'])) {
           player.state.setState('running');
@@ -96,4 +102,5 @@ export class Game {
       }
     }
   }
+
 }
