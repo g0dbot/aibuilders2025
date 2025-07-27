@@ -1,125 +1,170 @@
-import { BasePlatform } from '../entities/platforms/BasePlatform.js';
-import { BouncyPlatform } from '../entities/platforms/BouncyPlatform.js';
-import { FloatingPlatform } from '../entities/platforms/FloatingPlatform.js';
+// src/managers/LevelManager.js
+
+import { ParallaxManager } from '../engine/ParallaxManager.js';
+import { ParallaxScene } from '../engine/ParallaxScene.js';
+import { ParallaxLayer } from '../engine/ParallaxLayer.js';
+import { PlatformManager } from './PlatformManager.js';
 
 export class LevelManager {
-  constructor(entities, canvasWidth, canvasHeight) {
-    this.entities = entities;
-    this.canvasWidth = canvasWidth;
-    this.canvasHeight = canvasHeight;
+  constructor(game, images) {
+    this.game = game;
+    this.canvasWidth = game.canvas.width;
+    this.canvasHeight = game.canvas.height;
+    this.blockSize = 32;
 
-    this.platformSpacing = 200;
-    this.lastPlatformX = canvasWidth;
+    this.totalDistance = 0;
+    this.maxPlayerX = 0;
+    this.sceneChangeDistance = 3000;
+    this.currentSceneIndex = 0;
 
-    // Base platform configuration
-    this.basePlatformY = this.canvasHeight * 0.75;
-    this.segmentWidth = 200;
-    this.gapWidth = 100;
+    // Define scenes with layers
+    const scene1 = new ParallaxScene([
+      new ParallaxLayer(images.bg1_far, 0.2),
+      new ParallaxLayer(images.bg1_mid, 0.4),
+      new ParallaxLayer(images.bg1_near, 0.6),
+    ]);
+    scene1.startX = 0;
+    scene1.endX = 1000;
 
-    // Floating platform configuration
-    this.platformMinY = this.basePlatformY - 250;
-    this.platformMaxY = this.basePlatformY - 50;
-    this.platformWidthRange = [100, 250];
+    const scene2 = new ParallaxScene([
+      new ParallaxLayer(images.bg2_far, 0.1),
+      new ParallaxLayer(images.bg2_mid, 0.3),
+      new ParallaxLayer(images.bg2_near, 0.5),
+      new ParallaxLayer(images.bg2_front, 0.7),
+    ]);
+    scene2.startX = 1000;
+    scene2.endX = 2000;
 
-    // Platform type definitions
-    this.platformTypes = [BasePlatform, BouncyPlatform];
-    this.floatingTypes = [FloatingPlatform];
+    this.parallaxManager = new ParallaxManager([scene1, scene2]);
 
-    this.spawnBaseSegments();
+    // Use PlatformManager
+    this.platformManager = new PlatformManager(this.blockSize, this.canvasHeight);
+    this.configurePlatformScenes();
+    this.platformManager.initializePlatforms(this.currentSceneIndex);
   }
 
-  update(scrollSpeed) {
-    this.generateBaseSegments(scrollSpeed);
-    this.generateFloatingPlatforms();
-    this.cleanPlatforms();
-  }
-
-  spawnBaseSegments() {
-    let x = 0;
-    while (x < this.canvasWidth * 2) {
-      const width = this.random(this.platformWidthRange[0], this.platformWidthRange[1]);
-      const gap = this.random(60, 140);
-
-      const platform = this.spawnPlatformFromTypes(this.platformTypes, x, this.basePlatformY, width, this.canvasHeight - this.basePlatformY);
-      if (platform) this.entities.push(platform);
-
-      x += width + gap;
-    }
-  }
-
-  generateBaseSegments(scrollSpeed) {
-    const basePlatforms = this.entities
-      .filter(e => e.type === 'base')
-      .sort((a, b) => b.pos.x - a.pos.x);
-
-    if (basePlatforms.length === 0) return;
-
-    const last = basePlatforms[0];
-    const rightEdge = last.pos.x + last.size.width;
-
-    if (rightEdge < this.canvasWidth + 200) {
-      const width = this.random(this.platformWidthRange[0], this.platformWidthRange[1]);
-      const gap = this.random(60, 140);
-
-      const platform = this.spawnPlatformFromTypes(
-        this.platformTypes,
-        rightEdge + gap,
-        this.basePlatformY,
-        width,
-        this.canvasHeight - this.basePlatformY
-      );
-      if (platform) this.entities.push(platform);
-    }
-  }
-
-  generateFloatingPlatforms() {
-    const rightEdge = this.getFarthestPlatformX();
-
-    while (this.lastPlatformX < rightEdge + 400) {
-      const width = this.random(this.platformWidthRange[0], this.platformWidthRange[1]);
-      const y = this.random(this.platformMinY, this.platformMaxY);
-
-      const platform = this.spawnPlatformFromTypes(this.floatingTypes, this.lastPlatformX, y, width, 20);
-      if (platform && platform.pos.y + platform.size.height <= this.basePlatformY - 10) {
-        this.entities.push(platform);
+  configurePlatformScenes() {
+    // Configure global platforms (appear in all scenes)
+    this.platformManager.configureGlobalPlatforms([
+      {
+        type: 'floating',
+        height: 0.5,
+        // No sceneCondition means it appears everywhere
       }
+    ]);
 
-      this.lastPlatformX += width + this.platformSpacing;
-    }
-  }
-
-  spawnPlatformFromTypes(types, x, y, width, height) {
-    for (let Type of types) {
-      if (Type.canSpawnAt?.(x, y)) {
-        return Type.generate(x, y, width, height);
+    // Configure scene-specific platforms
+    this.platformManager.configureScenePlatforms(0, [
+      {
+        type: 'floating',
+        height: 0.7,
+        y: 150,
+        sceneCondition: (sceneIndex) => sceneIndex === 0 // Only in scene 0
+      },
+      {
+        type: 'floating',
+        height: 1.0,
+        y: 300,
+        sceneCondition: (sceneIndex) => sceneIndex === 0 // Only in scene 0
       }
-    }
-    return null;
-  }
+    ]);
 
-  cleanPlatforms() {
-    for (let i = this.entities.length - 1; i >= 0; i--) {
-      const e = this.entities[i];
-      if (e.pos.x + e.size.width < -100) {
-        this.entities.splice(i, 1);
+    this.platformManager.configureScenePlatforms(1, [
+      {
+        type: 'floating',
+        height: 0.3,
+        y: 100,
+        sceneCondition: (sceneIndex) => sceneIndex === 1 // Only in scene 1
+      },
+      {
+        type: 'floating',
+        height: 0.8,
+        y: 250,
+        sceneCondition: (sceneIndex) => sceneIndex === 1 // Only in scene 1
       }
+    ]);
+  }
+
+  updateDistanceTracking(playerX) {
+    if (playerX > this.maxPlayerX) {
+      const distanceMoved = playerX - this.maxPlayerX;
+      this.totalDistance += distanceMoved;
+      this.maxPlayerX = playerX;
+    }
+
+    const scenesPassed = Math.floor(this.totalDistance / this.sceneChangeDistance);
+    const newSceneIndex = scenesPassed % this.parallaxManager.getSceneCount();
+
+    if (newSceneIndex !== this.currentSceneIndex && !this.parallaxManager.isTransitioning()) {
+      this.currentSceneIndex = newSceneIndex;
+      this.parallaxManager.switchTo(this.currentSceneIndex);
+      this.platformManager.onSceneChange(this.currentSceneIndex);
+      console.log(`Auto-switching to scene ${this.currentSceneIndex}. Total distance: ${Math.floor(this.totalDistance)}`);
     }
   }
 
-  getFarthestPlatformX() {
-    let farthest = 0;
-    for (let e of this.entities) {
-      if (e.pos && e.size) {
-        const right = e.pos.x + e.size.width;
-        if (right > farthest) {
-          farthest = right;
-        }
-      }
-    }
-    return farthest;
+  update(delta, cameraX) {
+    const deltaX = cameraX - (this.lastCameraX ?? cameraX);
+    this.lastCameraX = cameraX;
+
+    const playerSpeed = this.game.player.speed;
+    this.parallaxManager.update(deltaX, cameraX, playerSpeed);
+
+    this.updateDistanceTracking(this.game.player.pos.x);
+
+    // Delegate platform management to PlatformManager with current scene
+    this.platformManager.extendPlatformsIfNeeded(cameraX, this.canvasWidth, this.currentSceneIndex);
+
+    // Handle collisions
+    this.platformManager.handlePlatformCollisions(this.game.player);
   }
 
-  random(min, max) {
-    return Math.floor(Math.random() * (max - min)) + min;
+  render(ctx, cameraX) {
+    this.parallaxManager.render(ctx, cameraX);
+
+    // Render platforms via PlatformManager
+    this.platformManager.renderPlatforms(ctx, cameraX);
+
+    this.drawDistanceInfo(ctx);
+  }
+
+  drawDistanceInfo(ctx) {
+    ctx.fillStyle = 'white';
+    ctx.font = '14px Arial';
+    ctx.fillText(`Distance: ${Math.floor(this.totalDistance)}`, 10, 20);
+    ctx.fillText(`Scene: ${this.currentSceneIndex + 1}/${this.parallaxManager.getSceneCount()}`, 10, 40);
+  }
+
+  switchEnvironment(index) {
+    if (index >= 0 && index < this.parallaxManager.getSceneCount() && !this.parallaxManager.isTransitioning()) {
+      this.currentSceneIndex = index;
+      this.parallaxManager.switchTo(this.currentSceneIndex);
+      this.platformManager.onSceneChange(this.currentSceneIndex);
+    }
+  }
+
+  getTotalDistance() {
+    return this.totalDistance;
+  }
+
+  getCurrentSceneIndex() {
+    return this.currentSceneIndex;
+  }
+
+  setSceneChangeDistance(distance) {
+    this.sceneChangeDistance = distance;
+  }
+
+  // Additional methods that might be useful
+  getPlatforms() {
+    return this.platformManager.getPlatforms();
+  }
+
+  resetLevel() {
+    this.totalDistance = 0;
+    this.maxPlayerX = 0;
+    this.currentSceneIndex = 0;
+    this.platformManager.reset();
+    this.parallaxManager.switchTo(0);
   }
 }

@@ -1,106 +1,78 @@
-import { Renderer } from './Renderer.js';
 import { Player } from '../entities/Player.js';
-import { Platform } from '../entities/platforms/Platform.js';
 import { LevelManager } from './LevelManager.js';
 
 export class Game {
-  constructor(canvas) {
-    this.ctx = canvas.getContext('2d');
+  constructor(canvas, ctx) {
     this.canvas = canvas;
-    this.renderer = new Renderer(this.ctx);
-    
+    this.ctx = ctx;
+    this.cameraX = 0;
+    this.scrollSpeed = 0; // 0 for player-centered, >0 for auto-scroll
 
-    this.scrollSpeed = 1;
-    this.maxScrollSpeed = 4;
-    this.scrollAccel = 0.0005;
+    // Position player at 1/3 from left of canvas
+    this.player = new Player(canvas.width / 3, canvas.height - 150);
 
-    this.entities = [];
-    this.player = new Player(100, 300);
-    this.entities.push(this.player);
+    // Temporarily null until images load
+    this.levelManager = null;
 
-    this.levelManager = new LevelManager(this.entities, canvas.width, canvas.height);
-
-    // Initial platforms
-    this.entities.push(new Platform(50, 400, 300, 20));
-    this.entities.push(new Platform(400, 350, 150, 20));
-    //this.entities.push(new Platform(0, this.levelManager.basePlatformY, this.canvasWidth, 40));
+    this.lastTimestamp = 0;
+    this.isAutoScroll = false;
   }
 
-  start() {
-    this.lastTime = performance.now();
-    requestAnimationFrame(this.loop.bind(this));
+  update(delta) {
+    if (!this.levelManager) return;
+
+    this.player.update(delta, this);
+
+    if (this.isAutoScroll) {
+      this.cameraX += this.scrollSpeed;
+    } else {
+      this.cameraX = this.player.pos.x - (this.canvas.width / 3);
+    }
+
+    this.levelManager.update(delta, this.cameraX);
   }
 
-  loop(currentTime) {
-    const delta = currentTime - this.lastTime;
-    this.lastTime = currentTime;
+  render() {
+    if (!this.levelManager) return;
+
+    this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+    this.levelManager.render(this.ctx, this.cameraX);
+    this.player.render(this.ctx, this.cameraX);
+  }
+
+  loop = (timestamp) => {
+    const delta = timestamp - this.lastTimestamp;
+    this.lastTimestamp = timestamp;
 
     this.update(delta);
     this.render();
 
-    requestAnimationFrame(this.loop.bind(this));
+    requestAnimationFrame(this.loop);
   }
 
-  update(delta) {
-    this.scrollSpeed = Math.min(this.scrollSpeed + this.scrollAccel * delta, this.maxScrollSpeed);
+  start() {
+    const images = {
+      bg1_far: new Image(),
+      bg1_mid: new Image(),
+      bg1_near: new Image(),
+      bg2_far: new Image(),
+      bg2_mid: new Image(),
+      bg2_near: new Image(),
+      bg2_front: new Image()
+    };
 
-    for (let entity of this.entities) {
-      if (entity !== this.player) {
-        entity.pos.x -= this.scrollSpeed;
-      }
-      entity.update?.(delta);
-    }
+    images.bg1_far.src = './src/assets/background/layer-1.png';
+    images.bg1_mid.src = './src/assets/background/layer-2.png';
+    images.bg1_near.src = './src/assets/background/layer-3.png';
+    images.bg2_far.src = './src/assets/background/layer-4.png';
+    images.bg2_mid.src = './src/assets/background/layer-5.png';
+    images.bg2_near.src = './src/assets/background/layer-4.png';
+    images.bg2_front.src = './src/assets/background/layer-5.png';
 
-    this.levelManager.update(this.scrollSpeed);
-    this.checkPlayerPlatformCollision();
-
-    // Always apply scroll to player (remove grounded check)
-    this.player.pos.x -= this.scrollSpeed;
+    Promise.all(Object.values(images).map(img => new Promise(res => img.onload = res)))
+      .then(() => {
+        this.levelManager = new LevelManager(this, images);
+        requestAnimationFrame(this.loop);
+      });
   }
-
-
-  render() {
-    this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
-    this.renderer.render(this.entities);
-  }
-
-  checkPlayerPlatformCollision() {
-    const player = this.player;
-    const playerBottom = player.pos.y + player.size.height;
-    const playerTop = player.pos.y;
-    const playerPrevBottom = player.pos.y + player.size.height - player.velocityY;
-
-    player.grounded = false;
-
-    for (let entity of this.entities) {
-      if (!(entity instanceof Platform)) continue;
-
-      const horizontallyAligned =
-        player.pos.x + player.size.width > entity.pos.x &&
-        player.pos.x < entity.pos.x + entity.size.width;
-
-      if (!horizontallyAligned) continue;
-
-      const platformTop = entity.pos.y;
-
-      // ✅ Only trigger collision if the player is falling and was above the platform in previous frame
-      const isFalling = player.velocityY >= 0;
-      const wasAbove = playerPrevBottom <= platformTop;
-
-      if (isFalling && wasAbove && playerBottom >= platformTop) {
-        // Snap player to top
-        player.pos.y = platformTop - player.size.height;
-        player.velocityY = 0;
-        player.grounded = true;
-        player.jumpCount = 0;
-
-        if (player.state.current !== 'attacking' && (player.keys['ArrowLeft'] || player.keys['ArrowRight'])) {
-          player.state.setState('running');
-        } else if (player.state.current !== 'attacking') {
-          player.state.setState('idle');
-        }
-      }
-    }
-  }
-
 }
