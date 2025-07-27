@@ -1,27 +1,29 @@
+// src/engine/ParallaxLayer.js
+
 export class ParallaxLayer {
-  constructor(image, speedRatio) {
+  constructor(image, speed) {
     this.image = image;
-    this.speedRatio = speedRatio;
+    this.speed = speed;
+    this.offsetX = 0;
   }
 
   update(deltaX) {
-    // Not required to store cameraX; layer scroll is computed in render based on cameraX & speedRatio
-    // Left here if you want to extend behavior.
+    if (!this.image || !this.image.width) return; // Skip if image not loaded
+    this.offsetX += deltaX * this.speed;
+    this.offsetX %= this.image.width;
   }
 
-  render(ctx, cameraX) {
-    const { width: canvasWidth, height: canvasHeight } = ctx.canvas;
-    const imageRatio = this.image.width / this.image.height;
-    const scaledHeight = canvasHeight;
-    const scaledWidth = scaledHeight * imageRatio;
+  render(ctx, cameraX, canvasHeight) {
+    if (!this.image || !this.image.width) return; // Skip if image not loaded
 
-    // Calculate horizontal offset with speed ratio and wrap for seamless looping
-    let x = -(cameraX * this.speedRatio) % scaledWidth;
-    if (x > 0) x -= scaledWidth;
+    const aspectRatio = this.image.width / this.image.height;
+    const drawHeight = canvasHeight;
+    const drawWidth = drawHeight * aspectRatio;
 
-    // Draw repeated images across the canvas width
-    for (; x < canvasWidth; x += scaledWidth) {
-      ctx.drawImage(this.image, x, 0, scaledWidth, scaledHeight);
+    let x = -this.offsetX;
+    while (x < ctx.canvas.width) {
+      ctx.drawImage(this.image, x, 0, drawWidth, drawHeight);
+      x += drawWidth;
     }
   }
 }
