@@ -1,45 +1,120 @@
+import { ParallaxScene } from './ParallaxScene.js';
+
 export class ParallaxManager {
-  constructor(scenes = []) {
+  constructor(scenes = [], playerOffsetX = 150) {
     this.scenes = scenes;
     this.activeSceneIndex = 0;
+    this.nextSceneIndex = null;
     this.transitioning = false;
+    this.transitionDirection = 0;
     this.transitionProgress = 0;
-    this.transitionSpeed = 0.02;
+    this.playerOffsetX = playerOffsetX;
+    this.lastPlayerX = 0;
+  }
+
+  get currentScene() {
+    return this.scenes[this.activeSceneIndex];
   }
 
   getSceneCount() {
     return this.scenes.length;
   }
 
-  getCurrentSceneIndex() {
-    return this.activeSceneIndex;
+  switchTo(index) {
+    if (index === this.activeSceneIndex || this.transitioning) return;
+    if (index < 0 || index >= this.scenes.length) return;
+
+    this.nextSceneIndex = index;
+    this.transitioning = true;
+    this.transitionProgress = 0;
+    this.transitionDirection = index > this.activeSceneIndex ? 1 : -1;
+  }
+
+  update(deltaX, cameraX, playerSpeed = 10) {
+    const playerX = cameraX + this.playerOffsetX;
+    const movement = playerX - this.lastPlayerX;
+    this.lastPlayerX = playerX;
+
+    const maxTransitionSpeed = playerSpeed * 0.1;
+    const cappedMovement = Math.max(-maxTransitionSpeed, Math.min(maxTransitionSpeed, movement));
+
+    if (this.transitioning) {
+      if ((cappedMovement > 0 && this.transitionDirection > 0) ||
+          (cappedMovement < 0 && this.transitionDirection < 0)) {
+        this.transitionProgress += Math.abs(cappedMovement) / 500;
+        if (this.transitionProgress >= 1) {
+          this.transitionProgress = 1;
+          this.activeSceneIndex = this.nextSceneIndex;
+          this.transitioning = false;
+          this.transitionDirection = 0;
+        }
+      } else if ((cappedMovement < 0 && this.transitionDirection > 0) ||
+                (cappedMovement > 0 && this.transitionDirection < 0)) {
+        this.transitionProgress -= Math.abs(cappedMovement) / 500;
+        if (this.transitionProgress <= 0) {
+          this.transitionProgress = 0;
+          this.transitioning = false;
+          this.nextSceneIndex = null;
+          this.transitionDirection = 0;
+        }
+      }
+
+      const progress = this.transitionProgress;
+      this.scenes[this.activeSceneIndex].update(deltaX * (1 - progress));
+      if (this.nextSceneIndex !== null) {
+        this.scenes[this.nextSceneIndex].update(deltaX * progress);
+      }
+    } else {
+      const currentScene = this.scenes[this.activeSceneIndex];
+      const nextIndex = (this.activeSceneIndex + 1) % this.scenes.length;
+      const prevIndex = (this.activeSceneIndex - 1 + this.scenes.length) % this.scenes.length;
+
+      if (playerX > currentScene.endX) {
+        this.nextSceneIndex = nextIndex;
+        this.transitioning = true;
+        this.transitionProgress = 0;
+        this.transitionDirection = 1;
+      } else if (playerX < currentScene.startX) {
+        this.nextSceneIndex = prevIndex;
+        this.transitioning = true;
+        this.transitionProgress = 0;
+        this.transitionDirection = -1;
+      }
+
+      this.scenes[this.activeSceneIndex].update(deltaX);
+    }
+  }
+
+  render(ctx, cameraX) {
+    const canvasWidth = ctx.canvas.width;
+
+    if (!this.transitioning) {
+      this.scenes[this.activeSceneIndex].render(ctx, cameraX);
+      return;
+    }
+
+    const progress = this.transitionProgress;
+    const dir = this.transitionDirection;
+    const offset = canvasWidth * progress * dir;
+    const currentSceneCameraX = cameraX - offset;
+    const nextSceneCameraX = cameraX - offset + canvasWidth * dir;
+
+    ctx.save();
+    ctx.globalAlpha = 1 - progress;
+    ctx.translate(-offset, 0);
+    this.scenes[this.activeSceneIndex].render(ctx, currentSceneCameraX);
+    ctx.restore();
+
+    ctx.save();
+    ctx.globalAlpha = progress;
+    ctx.translate(canvasWidth - offset, 0);
+    this.scenes[this.nextSceneIndex].render(ctx, nextSceneCameraX);
+    ctx.restore();
+
+    ctx.globalAlpha = 1.0;
   }
 
   isTransitioning() {
     return this.transitioning;
-  }
-
-  startTransitionTo(index) {
-    if (index === this.activeSceneIndex || index < 0 || index >= this.scenes.length) return;
-    this.nextSceneIndex = index;
-    this.transitioning = true;
-    this.transitionProgress = 0;
-  }
-
-  update(deltaX, cameraX) {
-    if (this.transitioning) {
-      this.transitionProgress += this.transitionSpeed;
-      if (this.transitionProgress >= 1) {
-        this.activeSceneIndex = this.nextSceneIndex;
-        this.transitioning = false;
-        this.transitionProgress = 0;
-      }
-    }
-    this.scenes[this.activeSceneIndex].update(deltaX);
-  }
-
-  render(ctx, cameraX, canvasHeight) {
-    const scene = this.scenes[this.activeSceneIndex];
-    scene.render(ctx, cameraX, canvasHeight);
   }
 }

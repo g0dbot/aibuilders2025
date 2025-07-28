@@ -52,6 +52,21 @@ export class Game {
 
   start() {
     const images = {
+      bg_green_l1: new Image(),
+      bg_green_l2: new Image(),
+      bg_green_l3: new Image(),
+      bg_green_l4: new Image(),
+      bg_green_l5: new Image(),
+
+      bg_blue_l1: new Image(),
+      // bg_blue_l2: new Image(),
+      bg_blue_l3: new Image(),
+      bg_blue_l4: new Image(),
+      bg_blue_l5: new Image(),
+
+      
+      
+
       bg1_far: new Image(),
       bg1_mid: new Image(),
       bg1_near: new Image(),
@@ -60,7 +75,20 @@ export class Game {
       bg2_near: new Image(),
       bg2_front: new Image()
     };
+    
+    images.bg_green_l1.src = './src/assets/background/green/g_layer-1.png';
+    images.bg_green_l2.src = './src/assets/background/green/g_layer-2.png';
+    images.bg_green_l3.src = './src/assets/background/green/g_layer-3.png';
+    images.bg_green_l4.src = './src/assets/background/green/g_layer-4.png';
+    images.bg_green_l5.src = './src/assets/background/green/g_layer-5.png';
 
+    images.bg_blue_l1.src = './src/assets/background/blue/b_layer-1.png';
+    // //images.bg_blue_l2.src = './src/assets/background/blue/g_layer-2.png';
+    images.bg_blue_l3.src = './src/assets/background/blue/b_layer-3.png';
+    images.bg_blue_l4.src = './src/assets/background/blue/b_layer-4.png';
+    images.bg_blue_l5.src = './src/assets/background/blue/b_layer-5.png';
+
+    
     images.bg1_far.src = './src/assets/background/layer-1.png';
     images.bg1_mid.src = './src/assets/background/layer-2.png';
     images.bg1_near.src = './src/assets/background/layer-3.png';
