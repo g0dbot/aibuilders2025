@@ -220,4 +220,15 @@ export class Player extends Entity {
     // ctx.lineWidth = 2;
     // ctx.strokeRect(this.pos.x - cameraX, this.pos.y, this.size.width, this.size.height);
   }
+
+  reset() {
+    this.pos.x = 100;
+    this.pos.y = 100;
+    this.velocityY = 0;
+    this.jumpCount = 0;
+    this.dead = false;
+    this.state.setState('idle');
+    this.direction = 'right';
+    this.currentPlatform = null;
+  }
 }

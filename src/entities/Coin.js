@@ -7,6 +7,7 @@ export class Coin extends Entity {
     this.collected = false;
     this.glowIntensity = 3;  // lower glow for subtle effect
     this.glowDirection = 1;
+    
   }
 
   update() {
@@ -36,6 +37,8 @@ export class Coin extends Entity {
     if (this.checkCollision(player)) {
       this.collected = true;
       // TODO: play coin collection sound here
+      // this.sound = new Audio('./assets/sfx/coin.mp3');
+      // this.sound.play();
       return true;
     }
     return false;
