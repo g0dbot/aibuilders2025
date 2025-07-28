@@ -64,9 +64,9 @@ export class Enemy extends Entity {
     );
 
     // Hitbox (optional)
-    ctx.strokeStyle = 'red';
-    ctx.lineWidth = 2;
-    ctx.strokeRect(dx, dy, this.size.width, this.size.height);
+    // ctx.strokeStyle = 'red';
+    // ctx.lineWidth = 2;
+    // ctx.strokeRect(dx, dy, this.size.width, this.size.height);
   }
 
   hitsPlayer(player) {

@@ -216,8 +216,8 @@ export class Player extends Entity {
       ctx.fillRect(this.pos.x - cameraX, this.pos.y, this.size.width, this.size.height);
     }
 
-    ctx.strokeStyle = 'red';
-    ctx.lineWidth = 2;
-    ctx.strokeRect(this.pos.x - cameraX, this.pos.y, this.size.width, this.size.height);
+    // ctx.strokeStyle = 'red';
+    // ctx.lineWidth = 2;
+    // ctx.strokeRect(this.pos.x - cameraX, this.pos.y, this.size.width, this.size.height);
   }
 }

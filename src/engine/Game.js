@@ -1,6 +1,7 @@
 import { Player } from '../entities/Player.js';
 import { LevelManager } from './LevelManager.js';
 import { GreenFlyEnemy } from '../entities/GreenFlyEnemy.js';
+import { BlueFlyEnemy } from '../entities/BlueFlyEnemy.js';
 
 export class Game {
   constructor(canvas, ctx) {
@@ -67,6 +68,7 @@ export class Game {
       bg_blue_l5: new Image(),
 
       enemy_greenFly: new Image(),
+      enemy_blueFly: new Image(),
       // Add other enemy sprites here when needed
     };
 
@@ -84,6 +86,7 @@ export class Game {
     images.bg_blue_l5.src = './src/assets/background/blue/b_layer-5.png';
 
     images.enemy_greenFly.src = './src/assets/enemies/enemy1.png';
+    images.enemy_blueFly.src = './src/assets/enemies/enemy2.png';
 
     // Wait for all images to load before starting
     await Promise.all(Object.values(images).map(img => new Promise(res => {
@@ -95,6 +98,7 @@ export class Game {
 
     // Set enemy factories per scene here, example for scene 0 (green flyer)
     this.levelManager.setEnemyFactory(0, (x, y) => new GreenFlyEnemy(x, y, images.enemy_greenFly));
+    this.levelManager.setEnemyFactory(0, (x, y) => new BlueFlyEnemy(x, y, images.enemy_blueFly));
 
     requestAnimationFrame(this.loop);
   }
