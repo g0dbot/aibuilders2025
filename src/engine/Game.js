@@ -9,7 +9,7 @@ export class Game {
     this.scrollSpeed = 0; // 0 for player-centered, >0 for auto-scroll
 
     // Position player at 1/3 from left of canvas
-    this.player = new Player(canvas.width / 3, canvas.height - 150);
+    this.player = new Player(canvas.width / 3, canvas.height - 300);
 
     // Temporarily null until images load
     this.levelManager = null;

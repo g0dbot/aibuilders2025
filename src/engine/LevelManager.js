@@ -1,6 +1,7 @@
 import { ParallaxManager } from '../engine/ParallaxManager.js';
 import { PlatformManager } from './PlatformManager.js';
 import { SceneManager } from './SceneManager.js';
+import { Coin } from '../entities/Coin.js'; // import your Coin class
 
 export class LevelManager {
   constructor(game, images) {
@@ -13,6 +14,11 @@ export class LevelManager {
     this.maxPlayerX = 0;
     this.sceneChangeDistance = 2400;
     this.currentSceneIndex = 0;
+
+    this.coins = [];
+    this.score = 0;
+
+    this.minDistanceBetweenCoins = 40; // minimum horizontal distance between coins
 
     // Setup SceneManager
     this.sceneManager = new SceneManager();
@@ -46,6 +52,33 @@ export class LevelManager {
     }
   }
 
+  // Spawn coins only near platforms newly generated offscreen (right)
+  spawnCoinsNearNewPlatforms() {
+    const cameraRightEdge = this.game.cameraX + this.canvasWidth;
+
+    // Platforms that just appeared offscreen ahead (+400px buffer)
+    const candidatePlatforms = this.platformManager.platforms.filter(p => {
+      return p.pos.x > cameraRightEdge && p.pos.x < cameraRightEdge + 400;
+    });
+
+    for (const platform of candidatePlatforms) {
+      // Check if a coin already exists near this platform to avoid dense clustering
+      const closeCoin = this.coins.find(c => Math.abs(c.pos.x - platform.pos.x) < this.minDistanceBetweenCoins);
+      if (closeCoin) continue;
+
+      // Calculate coin position: random X on platform, 50 pixels above
+      const coinX = platform.pos.x + Math.random() * platform.size.width;
+      const coinY = platform.pos.y - 50;
+
+      // Ensure this coin is not too close to existing coins
+      const tooCloseToOtherCoin = this.coins.some(c => Math.abs(c.pos.x - coinX) < this.minDistanceBetweenCoins);
+      if (tooCloseToOtherCoin) continue;
+
+      const newCoin = new Coin(coinX, coinY);
+      this.coins.push(newCoin);
+    }
+  }
+
   update(delta, cameraX) {
     const deltaX = cameraX - (this.lastCameraX ?? cameraX);
     this.lastCameraX = cameraX;
@@ -54,12 +87,44 @@ export class LevelManager {
     this.sceneManager.update(deltaX, cameraX, playerSpeed, this.game.player.pos.x);
     this.updateDistanceTracking(this.game.player.pos.x);
     this.sceneManager.extendPlatformsIfNeeded(cameraX, this.canvasWidth);
-    this.sceneManager.handleCollisions(this.game.player);
+
+    // Spawn coins near platforms just generated offscreen
+    this.spawnCoinsNearNewPlatforms();
+
+    // Update platforms
+    this.platformManager.updatePlatforms(this.game.player);
+
+    // Handle platform collisions
+    this.platformManager.handlePlatformCollisions(this.game.player);
+
+    // Update coins and check collisions with player
+    for (let i = this.coins.length - 1; i >= 0; i--) {
+      const coin = this.coins[i];
+      coin.update();
+
+      if (coin.collect(this.game.player)) {
+        this.coins.splice(i, 1);
+        this.score++;
+
+        // TODO: Play coin collection sound here
+        // Example: playSound('coin.wav');
+      }
+    }
   }
 
   render(ctx, cameraX) {
     this.sceneManager.render(ctx, cameraX);
     this.drawDistanceInfo(ctx);
+
+    // Render coins
+    for (const coin of this.coins) {
+      coin.render(ctx, cameraX);
+    }
+
+    // Draw score on HUD
+    ctx.fillStyle = 'yellow';
+    ctx.font = '16px Arial';
+    ctx.fillText(`Score: ${this.score}`, 10, 60);
   }
 
   drawDistanceInfo(ctx) {
@@ -96,6 +161,8 @@ export class LevelManager {
     this.totalDistance = 0;
     this.maxPlayerX = 0;
     this.currentSceneIndex = 0;
+    this.score = 0;
+    this.coins = [];
     this.sceneManager.reset();
   }
 }

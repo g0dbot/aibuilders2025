@@ -51,50 +51,43 @@ export class BasePlatform extends Platform {
     newPlatform.setHeightInBlocks(this.heightInBlocks);
     newPlatform.size.width = width;
     return newPlatform;
-  }
-
-  // Draw two-color block texture
-  drawTwoColorTexture(ctx, x, y, width, height) {
-    // Create gradient from dark top to light bottom
-    const gradient = ctx.createLinearGradient(x, y, x, y + height);
-    gradient.addColorStop(0, this.colors.dark);   // Darker at top
-    gradient.addColorStop(1, this.colors.light);  // Lighter at bottom
-    ctx.fillStyle = gradient;
-    ctx.fillRect(x, y, width, height);
-    
-    // Draw subtle block separation lines
-    ctx.strokeStyle = this.colors.dark;
-    ctx.lineWidth = 1;
-    ctx.globalAlpha = 0.4;
-    
-    // Vertical block lines
-    const blockSize = this.blockSize;
-    for (let i = 0; i < width; i += blockSize) {
-      ctx.beginPath();
-      ctx.moveTo(x + i, y);
-      ctx.lineTo(x + i, y + height);
-      ctx.stroke();
-    }
-    
-    // Horizontal block lines (subtle)
-    for (let i = 0; i < height; i += blockSize) {
-      ctx.beginPath();
-      ctx.moveTo(x, y + i);
-      ctx.lineTo(x + width, y + i);
-      ctx.stroke();
-    }
-    
-    // Reset drawing state
-    ctx.globalAlpha = 1.0;
-  }
+  } 
 
   render(ctx, cameraX) {
-    // Draw the two-color gradient texture
-    this.drawTwoColorTexture(ctx, this.pos.x - cameraX, this.pos.y, this.size.width, this.size.height);
-    
-    // Subtle border to define platform edges
-    // ctx.strokeStyle = this.colors.dark;
-    // ctx.lineWidth = 1;
-    // ctx.strokeRect(this.pos.x - cameraX, this.pos.y, this.size.width, this.size.height);
+    // Draw base gradient and grid lines from parent
+    super.render(ctx, cameraX);
+
+    // Glowing white line at the top
+    ctx.strokeStyle = 'white';
+    ctx.lineWidth = 2;
+    ctx.shadowColor = 'white';
+    ctx.shadowBlur = 8;
+    ctx.beginPath();
+    ctx.moveTo(this.pos.x - cameraX, this.pos.y + 1);
+    ctx.lineTo(this.pos.x - cameraX + this.size.width, this.pos.y + 1);
+    ctx.stroke();
+
+    // Reset shadow for other drawings
+    ctx.shadowColor = 'transparent';
+    ctx.shadowBlur = 0;
+
+    // Draw wave pattern
+    ctx.strokeStyle = '#191970'; // Midnight blue
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    for (let x = 0; x < this.size.width; x += 10) {
+      const waveY = this.pos.y + 5 + Math.sin(x / 5) * 3;
+      if (x === 0) {
+        ctx.moveTo(this.pos.x - cameraX + x, waveY);
+      } else {
+        ctx.lineTo(this.pos.x - cameraX + x, waveY);
+      }
+    }
+    ctx.stroke();
+
+    // Platform border
+    ctx.strokeStyle = 'black';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(this.pos.x - cameraX, this.pos.y, this.size.width, this.size.height);
   }
 }
