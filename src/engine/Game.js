@@ -1,5 +1,6 @@
 import { Player } from '../entities/Player.js';
 import { LevelManager } from './LevelManager.js';
+import { GreenFlyEnemy } from '../entities/GreenFlyEnemy.js';
 
 export class Game {
   constructor(canvas, ctx) {
@@ -50,7 +51,8 @@ export class Game {
     requestAnimationFrame(this.loop);
   }
 
-  start() {
+  async start() {
+    // Base images for backgrounds
     const images = {
       bg_green_l1: new Image(),
       bg_green_l2: new Image(),
@@ -64,18 +66,11 @@ export class Game {
       bg_blue_l4: new Image(),
       bg_blue_l5: new Image(),
 
-      
-      
-
-      bg1_far: new Image(),
-      bg1_mid: new Image(),
-      bg1_near: new Image(),
-      bg2_far: new Image(),
-      bg2_mid: new Image(),
-      bg2_near: new Image(),
-      bg2_front: new Image()
+      enemy_greenFly: new Image(),
+      // Add other enemy sprites here when needed
     };
-    
+
+    // Set image sources
     images.bg_green_l1.src = './src/assets/background/green/g_layer-1.png';
     images.bg_green_l2.src = './src/assets/background/green/g_layer-2.png';
     images.bg_green_l3.src = './src/assets/background/green/g_layer-3.png';
@@ -83,24 +78,24 @@ export class Game {
     images.bg_green_l5.src = './src/assets/background/green/g_layer-5.png';
 
     images.bg_blue_l1.src = './src/assets/background/blue/b_layer-1.png';
-    // //images.bg_blue_l2.src = './src/assets/background/blue/g_layer-2.png';
+    // images.bg_blue_l2.src = './src/assets/background/blue/g_layer-2.png';
     images.bg_blue_l3.src = './src/assets/background/blue/b_layer-3.png';
     images.bg_blue_l4.src = './src/assets/background/blue/b_layer-4.png';
     images.bg_blue_l5.src = './src/assets/background/blue/b_layer-5.png';
 
-    
-    images.bg1_far.src = './src/assets/background/layer-1.png';
-    images.bg1_mid.src = './src/assets/background/layer-2.png';
-    images.bg1_near.src = './src/assets/background/layer-3.png';
-    images.bg2_far.src = './src/assets/background/layer-4.png';
-    images.bg2_mid.src = './src/assets/background/layer-5.png';
-    images.bg2_near.src = './src/assets/background/layer-4.png';
-    images.bg2_front.src = './src/assets/background/layer-5.png';
+    images.enemy_greenFly.src = './src/assets/enemies/enemy1.png';
 
-    Promise.all(Object.values(images).map(img => new Promise(res => img.onload = res)))
-      .then(() => {
-        this.levelManager = new LevelManager(this, images);
-        requestAnimationFrame(this.loop);
-      });
+    // Wait for all images to load before starting
+    await Promise.all(Object.values(images).map(img => new Promise(res => {
+      if (img.complete) return res();
+      img.onload = res;
+    })));
+
+    this.levelManager = new LevelManager(this, images);
+
+    // Set enemy factories per scene here, example for scene 0 (green flyer)
+    this.levelManager.setEnemyFactory(0, (x, y) => new GreenFlyEnemy(x, y, images.enemy_greenFly));
+
+    requestAnimationFrame(this.loop);
   }
 }
